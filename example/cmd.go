@@ -4,17 +4,25 @@ import (
 	"fmt"
 
 	"gitee.com/daqingshu/skiplist"
-	"github.com/valyala/fastrand"
 )
 
 func main() {
 	l := skiplist.NewSkiplist[int, uint32]()
-	for i := 0; i < 100000; i++ {
-		l.Insert(i, fastrand.Uint32())
+	for i := 0; i < 10; i++ {
+		l.Insert(i, uint32(i))
 	}
-
-	v := l.Search(10000)
+	var k = 5
+	v := l.Search(k)
 	fmt.Println(*v)
+	v = l.Delete(k)
+	fmt.Println(*v)
+
+	s := l.Search(k)
+	if s != nil {
+		fmt.Println(*s)
+	} else {
+		fmt.Printf("%v is not in list\n", k)
+	}
 	fmt.Println("Press the Enter Key to exit")
 	fmt.Scanln()
 }
