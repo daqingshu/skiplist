@@ -35,7 +35,7 @@ func NewSkiplist[K Ordered, V any]() *Skiplist[K, V] {
 	var k K
 	var v V
 	skl := &Skiplist[K, V]{
-		head:   newNode(maxLevel, k, v),
+		head:   newNode(k, v, maxLevel),
 		tail:   nil,
 		length: 0,
 		level:  1,
@@ -50,58 +50,86 @@ func (s *Skiplist[K, V]) Insert(key K, value V) *Node[K, V] {
 		return nil
 	}
 	var update [maxLevel]*Node[K, V]
-	s.FindGTE(key, &update)
-	var i int
+	var x *Node[K, V]
+
+	x = s.head
+	for i := int(s.level) - 1; i >= 0; i-- {
+		for x.Next[i] != nil &&
+			x.Next[i].Key < key {
+			x = x.Next[i]
+		}
+		update[i] = x
+	}
+	x = update[0]
+	if x.Next[0] != nil {
+		if x.Next[0].Key == key {
+			return x.Next[0]
+		}
+	}
 	level := randomLevel()
 	if level > s.level {
-		for i = int(s.level); i < int(level); i++ {
+		for i := int(s.level); i < int(level); i++ {
 			update[i] = s.head
 		}
 		s.level = level
 	}
-	x := newNode(level, key, value)
-	for i = 0; i < int(level); i++ {
-		x.Level[i].Next = update[i].Level[i].Next
-		update[i].Level[i].Next = x
+	newNode := newNode(key, value, level)
+	for i := 0; i < int(level); i++ {
+		newNode.Next[i] = update[i].Next[i]
+		update[i].Next[i] = newNode
 	}
 	if update[0] == s.head {
-		x.Prev = nil
+		newNode.Prev = nil
 	} else {
-		x.Prev = update[0]
+		newNode.Prev = update[0]
 	}
-	if x.Level[0].Next != nil {
-		x.Level[0].Next.Prev = x
+	if newNode.Next[0] != nil {
+		newNode.Next[0].Prev = newNode
 	} else {
-		s.tail = x
+		s.tail = newNode
 	}
 	s.length++
-	return x
+	return newNode
 }
 
 func (s *Skiplist[K, V]) Search(key K) *V {
 	if s == nil {
 		return nil
 	}
-	x := s.findEQ(key)
+	x := s.head
+	for i := int(s.level) - 1; i >= 0; i-- {
+		for x.Next[i] != nil &&
+			x.Next[i].Key < key {
+			x = x.Next[i]
+		}
+	}
+	x = x.Next[0]
 	if x == nil {
 		return nil
 	}
-	return &x.Value
+	if x.Key == key {
+		return &x.Value
+	}
+	return nil
 }
 
 func (s *Skiplist[K, V]) deleteNode(x *Node[K, V], update *[maxLevel]*Node[K, V]) {
 	for i := 0; i < int(s.level); i++ {
-		if update[i].Level[i].Next == x {
-			update[i].Level[i].Next = x.Level[i].Next
+		if update[i].Next[i] == nil {
+			continue
 		}
+		if update[i].Next[i] != x {
+			break
+		}
+		update[i].Next[i] = x.Next[i]
 	}
-	if x.Level[0].Next != nil {
-		x.Level[0].Next.Prev = x.Prev
+	if x.Next[0] != nil {
+		x.Next[0].Prev = x.Prev
 	} else {
 		s.tail = x.Prev
 	}
 	for {
-		if s.level > 1 && s.head.Level[s.level-1].Next == nil {
+		if s.level > 1 && s.head.Next[s.level-1] == nil {
 			s.level--
 		} else {
 			break
@@ -115,64 +143,20 @@ func (s *Skiplist[K, V]) Delete(key K) *V {
 		return nil
 	}
 	var update [maxLevel]*Node[K, V]
-	x := s.FindGT(key, &update)
-	x = x.Level[0].Next
+	x := s.head
+	for i := int(s.level) - 1; i >= 0; i-- {
+		for x.Next[i] != nil &&
+			x.Next[i].Key < key {
+			x = x.Next[i]
+		}
+		update[i] = x
+	}
+	x = x.Next[0]
 	if x != nil && x.Key == key {
 		s.deleteNode(x, &update)
 		return &x.Value
 	}
 	return nil
-}
-
-func (s *Skiplist[K, V]) findEQ(key K) *Node[K, V] {
-	if s == nil {
-		return nil
-	}
-	x := s.head
-	var i int
-	for i = int(s.level) - 1; i >= 0; i-- {
-		for x.Level[i].Next != nil &&
-			x.Level[i].Next.Key <= key {
-			x = x.Level[i].Next
-		}
-		if x.Key == key {
-			return x
-		}
-	}
-	return nil
-}
-
-func (s *Skiplist[K, V]) FindGTE(key K, update *[maxLevel]*Node[K, V]) *Node[K, V] {
-	if s == nil {
-		return nil
-	}
-	var x *Node[K, V]
-	var i int
-	x = s.head
-	for i = int(s.level) - 1; i >= 0; i-- {
-		for x.Level[i].Next != nil &&
-			x.Level[i].Next.Key <= key {
-			x = x.Level[i].Next
-		}
-		update[i] = x
-	}
-	return x
-}
-func (s *Skiplist[K, V]) FindGT(key K, update *[maxLevel]*Node[K, V]) *Node[K, V] {
-	if s == nil {
-		return nil
-	}
-	var x *Node[K, V]
-	var i int
-	x = s.head
-	for i = int(s.level) - 1; i >= 0; i-- {
-		for x.Level[i].Next != nil &&
-			x.Level[i].Next.Key < key {
-			x = x.Level[i].Next
-		}
-		update[i] = x
-	}
-	return x
 }
 
 func (s *Skiplist[K, V]) Level() uint32 {

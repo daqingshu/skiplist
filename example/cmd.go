@@ -2,27 +2,39 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"gitee.com/daqingshu/skiplist"
 )
 
 func main() {
+	begin := time.Now().UnixNano()
 	l := skiplist.NewSkiplist[int, uint32]()
 	for i := 0; i < 10; i++ {
+		n := l.Search(i)
+		if n != nil {
+			fmt.Println("get", i)
+		} else {
+			fmt.Println("can not find ", i)
+		}
+	}
+	for i := 0; i < 1000000; i++ {
 		l.Insert(i, uint32(i))
 	}
-	var k = 5
-	v := l.Search(k)
-	fmt.Println(*v)
-	v = l.Delete(k)
-	fmt.Println(*v)
 
-	s := l.Search(k)
-	if s != nil {
-		fmt.Println(*s)
-	} else {
-		fmt.Printf("%v is not in list\n", k)
+	l.Delete(55)
+
+	for i := 59; i >= 50; i-- {
+		n := l.Search(i)
+		if n != nil {
+			fmt.Println("get", i)
+		} else {
+			fmt.Println("can not find ", i)
+		}
 	}
-	fmt.Println("Press the Enter Key to exit")
-	fmt.Scanln()
+	end := time.Now().UnixNano()
+	elspsedTime := (end - begin) / 1000000
+	fmt.Printf("total used %v ms\n", elspsedTime)
+	// fmt.Println("Press the Enter Key to exit")
+	// fmt.Scanln()
 }
