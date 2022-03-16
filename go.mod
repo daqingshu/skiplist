@@ -1,4 +1,4 @@
-module gitee.com/daqingshu/skiplist
+module github.com/daqingshu/skiplist
 
 go 1.18
 

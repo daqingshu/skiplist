@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitee.com/daqingshu/skiplist"
+	"github.com/daqingshu/skiplist"
 )
 
 func main() {
